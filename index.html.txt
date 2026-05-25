@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>100天極致增肌減脂教練 Pro</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="100天教練Pro">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+
+    <style>
+        :root {
+            --safe-top: env(safe-area-inset-top, 20px);
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background-color: #121212; 
+            color: #e0e0e0; 
+            margin: 0; 
+            padding: calc(var(--safe-top) + 15px) 15px calc(var(--safe-bottom) + 15px) 15px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .container { max-width: 600px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        h1 { text-align: center; color: #ff9f43; font-size: 1.5em; margin: 5px 0; }
+        .day-counter { background: linear-gradient(45deg, #ee5253, #feca57); padding: 12px; border-radius: 12px; text-align: center; font-size: 1.2em; font-weight: bold; color: white; margin-bottom: 15px; }
+        .routine-box { background: #2d2d2d; padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 5px solid #10ac84; }
+        .time-slot { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #252525; margin-bottom: 6px; border-radius: 8px; border-right: 3px solid transparent; }
+        .time-slot.water { border-right-color: #54a0ff; }
+        .time-slot.supplement { border-right-color: #ff9f43; }
+        .time-slot.cardio { border-right-color: #ff6b6b; }
+        .time { color: #ff9f43; font-weight: bold; min-width: 65px; font-size: 1em; }
+        .task { flex-grow: 1; margin-left: 12px; font-size: 0.9em; line-height: 1.4; }
+        button.action-btn { display: block; width: 100%; padding: 12px; background: #10ac84; color: white; border: none; border-radius: 10px; font-size: 1em; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
+        .day-btn-container { display: flex; justify-content: space-between; margin-top: 15px; }
+        .day-btn { width: 48%; background: #3d3d3d; padding: 10px; font-size: 0.9em; color: white; border: none; border-radius: 8px; }
+        .meal-prep-tip { background: #222f3e; padding: 10px; border-radius: 8px; font-size: 0.85em; color: #00d2d3; margin-bottom: 15px; text-align: center; border: 1px dashed #00d2d3; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏋️‍♂️ 獨立教練 & 營養師 Pro</h1>
+    <div class="day-counter" id="dayDisplay">100天計劃：第 1 天</div>
+    
+    <button class="action-btn" onclick="requestPermission()">🔔 啟動教練即時通知功能</button>
+
+    <div class="meal-prep-tip">
+        💡 <b>今日 1 小時 Meal Prep 任務：</b><span id="prepTip">正在規劃食材...</span>
+    </div>
+
+    <div class="routine-box">
+        <h3>📅 今日主要訓練 (胸/背/腳循環)</h3>
+        <p id="trainingDetails">載入中...</p>
+    </div>
+
+    <div class="routine-box" style="border-left-color: #ff9f43;">
+        <h3>🥗 今日客製化餐單 (無青瓜/蕃茄)</h3>
+        <p id="dietDetails">載入中...</p>
+    </div>
+
+    <h3>⏰ 今日精準時間表 (補水、Supplement、Cardio)</h3>
+    <div id="timeline"></div>
+
+    <div class="day-btn-container">
+        <button class="day-btn" onclick="adjustDay(-1)">⬅️ 前一天</button>
+        <button class="day-btn" onclick="adjustDay(1)">後一天 ➡️</button>
+    </div>
+</div>
+
+<script>
+    let currentPlanDay = parseInt(localStorage.getItem('currentPlanDay')) || 1;
+
+    // 依據你的 Hevy Preference（胸背腳一週重複兩次）與返工 Cardio 安排
+    const trainingRoutines = [
+        { type: "星期一：胸部 + 三頭肌 (Push)", target: "🔥 依據 Hevy 課表重訓！\n🏃 晨起特訓：07:30 進行 30 分鐘空腹有氧 (Cardio)。" },
+        { type: "星期二：背部 + 二頭肌 (Pull)", target: "🔥 依據 Hevy 課表重訓！\n🏃 晨起特訓：07:30 進行 30 分鐘空腹有氧 (Cardio)。" },
+        { type: "星期三：腿部 + 肩部 (Legs)", target: "🔥 依據 Hevy 課表重訓！\n🏃 晨起特訓：07:30 進行 30 分鐘空腹有氧 (Cardio)。" },
+        { type: "星期四：胸部 + 三頭肌 (Push)", target: "🔥 依據 Hevy 課表重訓！\n🏃 晨起特訓：07:30 進行 30 分鐘空腹有氧 (Cardio)。" },
+        { type: "星期五：背部 + 二頭肌 (Pull)", target: "🔥 依據 Hevy 課表重訓！\n🏃 晨起特訓：07:30 進行 30 分鐘空腹有氧 (Cardio)。" },
+        { type: "星期六：腿部 + 肩部 (Legs)", target: "🔥 依據 Hevy 課表重訓！\n🧘 今日週末無 Cardio，全力專注重訓突破！" },
+        { type: "星期日：完全休息日 (Rest Day)", target: "🧘 今日全身肌肉修復。做 30 分鐘滾筒放鬆或拉筋伸展。" }
+    ];
+
+    // 100 天多變餐單庫（每週輪替，嚴格避開青瓜、蕃茄）
+    const weeklyDiets = [
+        // 第一、五、九周
+        {
+            prep: "煎雞胸肉切塊 + 水煮西蘭花 + 蒸蕃薯（分裝兩盒）",
+            menu: "☀️ 午餐：去皮海南雞飯（少飯）+ 白灼菜心\n🌙 晚餐：香煎雞胸肉 + 西蘭花 + 蒸蕃薯"
+        },
+        // 第二、六、十周
+        {
+            prep: "蒜蓉炒牛肉片 + 炒雜菇 + 糙米飯",
+            menu: "☀️ 午餐：滑蛋蝦仁飯（少飯）+ 蒜茸西蘭花\n🌙 晚餐：黑椒牛柳炒雜菇 + 糙米飯"
+        },
+        // 第三、七周
+        {
+            prep: "香煎三文魚扒 + 水煮蘆筍 + 烤南瓜",
+            menu: "☀️ 午餐：外食選擇 - 切雞燒肉飯（去皮/少飯）\n🌙 晚餐：香煎三文魚扒 + 水煮蘆筍 + 烤南瓜"
+        },
+        // 第四、八周
+        {
+            prep: "蒸鱸魚菲力 + 炒椰菜 + 蒸薯仔",
+            menu: "☀️ 午餐：鮮牛肉湯米粉 + 灼芥蘭（不加羗蔥）\n🌙 晚餐：清蒸鱸魚菲力 + 清炒椰菜 + 蒸薯仔"
+        }
+    ];
+
+    // 每日精準時間表
+    const dailySchedule = [
+        { time: "07:15", type: "supplement", title: "💊 朝早 Supplement", body: "食維他命 B 群（精神應付全日工作與訓練）！" },
+        { time: "07:30", type: "cardio", title: "🏃 空腹 Cardio (30分鐘)", body: "返工前有氧！維持心率在燃脂區間（限週一至五）。" },
+        { time: "08:15", type: "water", title: "💧 晨起補水 (500ml)", body: "完成 Cardio 後補水，開啟全日高代謝！" },
+        
+        // 工作期間 9 小時，分開 6 次飲水 (每 1.5 小時一次，每次 ~330ml，合共約 2000ml)
+        { time: "10:00", type: "water", title: "💧 工作補水 1/6 (330ml)", body: "番工第一杯水，起步！" },
+        { time: "11:30", type: "water", title: "💧 工作補水 2/6 (330ml)", body: "起一起身，飲第二杯水！" },
+        { time: "13:00", type: "supplement", title: "🐟 隨餐補給 (魚油)", body: "食午餐，順便食埋魚油（隨餐吸收最好）！" },
+        { time: "13:30", type: "water", title: "💧 工作補水 3/6 (330ml)", body: "飯後第三杯水，幫助消化！" },
+        { time: "15:00", type: "supplement", title: "🥛 下午茶 Protein Shake", body: "飲第一杯 Protein Shake + 飲水 330ml (工作補水 4/6)！" },
+        { time: "16:30", type: "water", title: "💧 工作補水 5/6 (330ml)", body: "就快放工，飲第五杯水！" },
+        { time: "18:00", type: "water", title: "💧 工作補水 6/6 (330ml)", body: "放工前飲完工作期最後一杯水！" },
+        
+        // 訓練後與睡前
+        { time: "21:00", type: "supplement", title: "💪 特訓後黃金修復", body: "飲第二杯 Protein Shake + 食 5g 肌酸 (Creatine) 幫助肌肉飽和！" },
+        { time: "21:30", type: "water", title: "💧 晚間補水 (500ml)", body: "補充重訓流失嘅水分。" },
+        { time: "23:00", type: "water", title: "💧 睡前最後補水 (500ml)", body: "飮埋最後 500ml，全日 3000ml 目標完美達成！" }
+    ];
+
+    function updateDashboard() {
+        if(currentPlanDay > 100) currentPlanDay = 1;
+        if(currentPlanDay < 1) currentPlanDay = 100;
+        localStorage.setItem('currentPlanDay', currentPlanDay);
+        
+        document.getElementById("dayDisplay").innerText = `100天增肌減脂：第 ${currentPlanDay} 天`;
+
+        // 計算星期幾 (0 是星期一, 6 是星期日)
+        const weekDayIndex = (currentPlanDay - 1) % 7; 
+        
+        // 每 28 天為一個大週期，每 7 天換一次餐單
+        const currentWeekNum = Math.floor((currentPlanDay - 1) / 7) + 1;
+        const dietIndex = (currentWeekNum - 1) % weeklyDiets.length;
+
+        let train = trainingRoutines[weekDayIndex];
+        let diet = weeklyDiets[dietIndex];
+
+        // 星期日特別處理 (Cheat Day)
+        if (weekDayIndex === 6) { 
+            document.getElementById("trainingDetails").innerText = train.target;
+            document.getElementById("dietDetails").innerText = "🍕 【快樂 Cheat Day】\n今晚可以放鬆食一餐你最鍾意嘅野！其餘兩餐保持高蛋白即可，唔好暴飲暴食。";
+            document.getElementById("prepTip").innerText = "今日休息，放假唔洗 Meal Prep！去享受一頓美食啦。";
+        } else {
+            document.getElementById("trainingDetails").innerText = train.target;
+            document.getElementById("dietDetails").innerText = diet.menu;
+            document.getElementById("prepTip").innerText = diet.prep;
+        }
+
+        // 渲染時間表 (如果是週末，自動隱藏 07:30 的 Cardio 提示)
+        let html = "";
+        dailySchedule.forEach(item => {
+            if (item.time === "07:30" && (weekDayIndex === 5 || weekDayIndex === 6)) {
+                return; // 星期六日不渲染 Cardio 提示
+            }
+            html += `<div class="time-slot ${item.type}"><span class="time">${item.time}</span><span class="task"><b>${item.title}</b><br>${item.body}</span></div>`;
+        });
+        document.getElementById("timeline").innerHTML = html;
+    }
+
+    function adjustDay(amount) {
+        currentPlanDay += amount;
+        updateDashboard();
+    }
+
+    function requestPermission() {
+        if (!("Notification" in window)) { alert("請確保已將網頁「加入主畫面」後再點擊啟動。"); return; }
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                alert("Pro 版獨立教練通知已成功啟動！");
+                new Notification("私人教練 Pro", { body: "精準補水與 Supplement 系統已就緒，一齊燃脂增肌！" });
+            }
+        });
+    }
+
+    // 每分鐘背景檢查
+    setInterval(() => {
+        const now = new Date();
+        const curTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const weekDayIndex = (currentPlanDay - 1) % 7;
+
+        dailySchedule.forEach(item => {
+            // 週末不發送 Cardio 通知
+            if (item.time === "07:30" && (weekDayIndex === 5 || weekDayIndex === 6)) return;
+
+            if (item.time === curTime && Notification.permission === "granted") {
+                new Notification(item.title, {
+                    body: item.body,
+                });
+            }
+        });
+
+        if (curTime === "00:00") {
+            currentPlanDay++;
+            updateDashboard();
+        }
+    }, 60000);
+
+    window.onload = updateDashboard;
+</script>
+
+</body>
+</html>
